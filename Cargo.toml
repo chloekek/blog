@@ -1,0 +1,17 @@
+[package]
+name = "blok"
+version = "0.0.0"
+edition = "2021"
+
+[dependencies.anyhow]
+version = "^1.0.51"
+
+[dependencies.gl]
+version = "~0.14.0"
+
+[dependencies.sdl2]
+version = "~0.35.1"
+
+[dependencies.serde]
+features = ["derive"]
+version = "^1.0.130"
