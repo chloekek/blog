@@ -25,6 +25,8 @@ in
                 # ^ Used by Cargo to connect with TLS servers.
             nixpkgs.pkgsCross.mingwW64.buildPackages.gcc
                 # ^ Used for linking Windows binaries.
+            nixpkgs.shaderc
+                # ^ Used for compiling shaders to SPIR-V.
             nixpkgs.wineWowPackages.full
                 # ^ Used for running Windows binaries.
             rust

@@ -4,6 +4,9 @@ use glam::{IVec3, Mat4};
 use opengl::gl::{self, Gl, types::*};
 use std::borrow::Borrow;
 
+static VERTEX_SHADER_BINARY: &'static [u8] =
+    include_bytes!(concat!(env!("OUT_DIR"), "/client/graphics/trivial_block/shader.vert.spv"));
+
 /// Vertex buffer entry for the trivial block drawing pipeline.
 ///
 /// Each entry represents a single face of a cube to be drawn.

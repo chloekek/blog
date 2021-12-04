@@ -3,7 +3,7 @@ use std::{env, fs::File, path::Path};
 
 fn main()
 {
-    let dest = env::var("OUT_DIR").unwrap();
+    let dest = env::var_os("OUT_DIR").unwrap();
 
     let gl_vsn = (4, 5);
     let gl_exts = [];

@@ -11,7 +11,7 @@ layout(location = 2) in uint face_u;
 layout(location = 3) in uint face_v;
 
 /// Normalized U and V coordinates in the texture atlas.
-out vec2 fragment_uv;
+layout(location = 0) out vec2 fragment_uv;
 
 /// For each of the six faces of the cube,
 /// this specifies the coordinate of each corner
@@ -78,5 +78,5 @@ void main()
     // Furthermore, they need to be normalized into the interval [0, 1]
     // so we divide them by the number of textures in the texture atlas.
     vec2 face_uv = vec2(face_u, face_v);
-    fragment_uv = (face_uv + uv_per_corner[gl_VertexID]) / texture_atlas_size;
+    fragment_uv = (face_uv + uv_per_corner[gl_VertexID]) / atlas_len;
 }
