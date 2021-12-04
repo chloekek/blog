@@ -1,9 +1,11 @@
-use anyhow::{Context, Result, anyhow};
-use blok::client::graphics::{
-    GlDebugMessageBuffer,
-    GlErrors,
-    TrivialBlockPipeline,
-    parameters,
+use anyhow::{Result, anyhow};
+use blok::{
+    client::graphics::{
+        GlDebugMessageBuffer,
+        TrivialBlockPipeline,
+        parameters,
+    },
+    try_gl,
 };
 use opengl::gl::{self, Gl};
 use std::ffi::c_void;
@@ -49,10 +51,8 @@ unsafe fn unsafe_main() -> Result<()>
 
     // Collect OpenGL debug messages.
     let gl_debug = GlDebugMessageBuffer::new();
-    gl.Enable(gl::DEBUG_OUTPUT);
-    GlErrors::get_gl_errors(gl).context("glEnable")?;
-    gl.Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS);
-    GlErrors::get_gl_errors(gl).context("glEnable")?;
+    try_gl! { gl.Enable(gl::DEBUG_OUTPUT); }
+    try_gl! { gl.Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS); }
     gl_debug.install(gl)?;
 
     // Create rendering pipelines.
@@ -72,10 +72,8 @@ unsafe fn unsafe_main() -> Result<()>
         }
 
         // Draw to the buffer.
-        gl.ClearColor(0.1, 0.2, 0.9, 1.0);
-        GlErrors::get_gl_errors(gl).context("glClearColor")?;
-        gl.Clear(gl::COLOR_BUFFER_BIT);
-        GlErrors::get_gl_errors(gl).context("glClear")?;
+        try_gl! { gl.ClearColor(0.1, 0.2, 0.9, 1.0); }
+        try_gl! { gl.Clear(gl::COLOR_BUFFER_BIT); }
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();

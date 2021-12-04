@@ -1,5 +1,42 @@
+use anyhow::{Context, Result};
 use opengl::gl::{self, Gl, types::*};
 use std::{error::Error, fmt};
+
+////////////////////////////////////////////////////////////////////////////////
+// Error propagation macro
+
+/// For use by [`try_gl`].
+#[doc(hidden)]
+pub fn context<C>(result: Result<(), GlErrors>, context: C) -> Result<()>
+    where C: 'static + fmt::Display + Send + Sync
+{
+    result.context(context)
+}
+
+/// Evaluate a call to OpenGL and check its errors.
+///
+/// If there are any errors, they are returned from the enclosing function.
+/// The errors are annotated with the name of the OpenGL function that failed.
+#[doc = crate::doc_safety_opengl!()]
+#[macro_export]
+macro_rules! try_gl
+{
+    { $gl:ident . $proc:ident ( $($argument:expr),* $(,)? ) ; } => {
+        try_gl! { $gl.$proc($($argument),*) } ;
+    };
+
+    { $gl:ident . $proc:ident ( $($argument:expr),* $(,)? ) } => {
+        {
+            let gl = $gl;
+            let result = gl.$proc($($argument),*);
+            $crate::client::graphics::context(
+                $crate::client::graphics::GlErrors::get_gl_errors(gl),
+                concat!("gl", stringify!($proc)),
+            )?;
+            result
+        }
+    };
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Invidivial errors
@@ -27,8 +64,8 @@ impl GlErrors
     /// If there are no errors, this method returns [`Ok`].
     /// Otherwise it returns the errors in the order in which they occurred.
     /// The error queue will be left empty when this method returns.
-    #[inline(never)]
     #[doc = crate::doc_safety_opengl!()]
+    #[inline(never)]
     pub unsafe fn get_gl_errors(gl: &Gl) -> Result<(), Self>
     {
         let mut errors = Vec::new();

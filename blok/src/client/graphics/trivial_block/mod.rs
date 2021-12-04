@@ -1,5 +1,5 @@
-use crate::client::graphics::GlErrors;
-use anyhow::{Context, Result};
+use crate::try_gl;
+use anyhow::Result;
 use opengl::gl::{Gl, types::*};
 
 /// Vertex buffer entry for the trivial block drawing pipeline.
@@ -49,9 +49,7 @@ impl TrivialBlockPipeline
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn new(gl: &Gl) -> Result<Self>
     {
-        let program = gl.CreateProgram();
-        GlErrors::get_gl_errors(gl).context("glCreateProgram")?;
-
+        let program = try_gl! { gl.CreateProgram() };
         Ok(Self{program})
     }
 

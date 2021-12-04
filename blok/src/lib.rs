@@ -2,6 +2,8 @@
 
 #![warn(missing_docs)]
 
+extern crate anyhow;
+
 mod doc;
 
 pub mod client;

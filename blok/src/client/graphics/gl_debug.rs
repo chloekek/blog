@@ -1,5 +1,5 @@
-use anyhow::{Context, Result};
-use crate::client::graphics::GlErrors;
+use crate::try_gl;
+use anyhow::Result;
 use opengl::gl::{Gl, types::*};
 use std::{cell::RefCell, ffi::c_void, slice};
 
@@ -23,11 +23,13 @@ impl GlDebugMessageBuffer
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn install(&self, gl: &Gl) -> Result<()>
     {
-        gl.DebugMessageCallback(
-            Some(Self::debug_callback),
-            self as *const Self as *mut c_void,
-        );
-        GlErrors::get_gl_errors(gl).context("glDebugMessageCallback")
+        try_gl! {
+            gl.DebugMessageCallback(
+                Some(Self::debug_callback),
+                self as *const Self as *mut c_void,
+            );
+        }
+        Ok(())
     }
 
     /// Write all collected debug messages to stderr and clear the buffer.
