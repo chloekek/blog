@@ -63,7 +63,6 @@ unsafe fn unsafe_main() -> Result<()>
     'outer: loop {
 
         // Print debug messages.
-        // TODO: Invoke this if there is an Err to be propagated.
         gl_debug.flush();
 
         // Handle SDL events.
@@ -74,16 +73,25 @@ unsafe fn unsafe_main() -> Result<()>
             }
         }
 
-        // Draw to the buffer.
-        try_gl! { gl::ClearColor(0.1, 0.2, 0.9, 1.0); }
-        try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
-        let tbfs = TrivialBlockFaceSet{chunk_position: ivec3(0, 0, 0)};
-        trivial_block_pipeline.render(16, &Mat4::IDENTITY, [&tbfs])?;
+        if let Err(err) = draw(&trivial_block_pipeline) {
+            gl_debug.flush();
+            return Err(err);
+        }
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();
 
     }
 
+    Ok(())
+}
+
+unsafe fn draw(trivial_block_pipeline: &TrivialBlockPipeline) -> Result<()>
+{
+    // Draw to the buffer.
+    try_gl! { gl::ClearColor(0.1, 0.2, 0.9, 1.0); }
+    try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
+    let tbfs = TrivialBlockFaceSet{chunk_position: ivec3(0, 0, 0)};
+    trivial_block_pipeline.render(16, &Mat4::IDENTITY, [&tbfs])?;
     Ok(())
 }
