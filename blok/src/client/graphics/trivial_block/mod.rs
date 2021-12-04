@@ -1,3 +1,7 @@
+use crate::client::graphics::GlErrors;
+use anyhow::{Context, Result};
+use opengl::gl::{Gl, types::*};
+
 /// Vertex buffer entry for the trivial block drawing pipeline.
 ///
 /// Each entry represents a single face of a cube to be drawn.
@@ -37,10 +41,21 @@ pub struct TrivialBlockFaceSet
 /// Specialized pipeline for rendering trivial blocks.
 pub struct TrivialBlockPipeline
 {
+    program: GLuint,
 }
 
 impl TrivialBlockPipeline
 {
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn new(gl: &Gl) -> Result<Self>
+    {
+        let program = gl.CreateProgram();
+        GlErrors::get_gl_errors(gl).context("glCreateProgram")?;
+
+        Ok(Self{program})
+    }
+
+    #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn render<I, M>(models: I)
         where I: IntoIterator<Item=M>
             , M: AsRef<TrivialBlockFaceSet>

@@ -1,9 +1,21 @@
-use anyhow::{Result, anyhow};
-use blok::client::graphics::{GlDebugMessageBuffer, parameters};
+use anyhow::{Context, Result, anyhow};
+use blok::client::graphics::{
+    GlDebugMessageBuffer,
+    GlErrors,
+    TrivialBlockPipeline,
+    parameters,
+};
 use opengl::gl::{self, Gl};
 use std::ffi::c_void;
 
 fn main() -> Result<()>
+{
+    unsafe {
+        unsafe_main()
+    }
+}
+
+unsafe fn unsafe_main() -> Result<()>
 {
     // Obtain SDL features.
     let sdl_context = sdl2::init().map_err(|e| anyhow!(e))?;
@@ -31,17 +43,20 @@ fn main() -> Result<()>
     let _gl_context = sdl_window.gl_create_context().map_err(|e| anyhow!(e))?;
 
     // Load OpenGL procedures into global function pointers.
-    let gl = Gl::load_with(|proc_name| {
+    let gl = &Gl::load_with(|proc_name| {
         sdl_video.gl_get_proc_address(proc_name) as *const c_void
     });
 
     // Collect OpenGL debug messages.
     let gl_debug = GlDebugMessageBuffer::new();
-    unsafe {
-        gl.Enable(gl::DEBUG_OUTPUT);
-        gl.Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS);
-        gl_debug.install(&gl);
-    }
+    gl.Enable(gl::DEBUG_OUTPUT);
+    GlErrors::get_gl_errors(gl).context("glEnable")?;
+    gl.Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS);
+    GlErrors::get_gl_errors(gl).context("glEnable")?;
+    gl_debug.install(gl)?;
+
+    // Create rendering pipelines.
+    let trivial_block_pipeline = TrivialBlockPipeline::new(gl)?;
 
     'outer: loop {
 
@@ -57,10 +72,10 @@ fn main() -> Result<()>
         }
 
         // Draw to the buffer.
-        unsafe {
-            gl.ClearColor(0.1, 0.2, 0.9, 1.0);
-            gl.Clear(gl::COLOR_BUFFER_BIT);
-        }
+        gl.ClearColor(0.1, 0.2, 0.9, 1.0);
+        GlErrors::get_gl_errors(gl).context("glClearColor")?;
+        gl.Clear(gl::COLOR_BUFFER_BIT);
+        GlErrors::get_gl_errors(gl).context("glClear")?;
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();

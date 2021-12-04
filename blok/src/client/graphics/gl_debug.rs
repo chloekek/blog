@@ -1,3 +1,5 @@
+use anyhow::{Context, Result};
+use crate::client::graphics::GlErrors;
 use opengl::gl::{Gl, types::*};
 use std::{cell::RefCell, ffi::c_void, slice};
 
@@ -18,19 +20,14 @@ impl GlDebugMessageBuffer
     }
 
     /// Call `glDebugMessageCallback` with appropriate arguments.
-    ///
-    /// # Safety
-    ///
-    /// There must be a current OpenGL context.
-    /// The object must exist for at least as long the callback can be invoked.
-    /// The object must not be accessed concurrently,
-    /// so `GL_DEBUG_OUTPUT_SYNCHRONOUS` should be enabled.
-    pub unsafe fn install(&self, gl: &Gl)
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn install(&self, gl: &Gl) -> Result<()>
     {
         gl.DebugMessageCallback(
             Some(Self::debug_callback),
             self as *const Self as *mut c_void,
         );
+        GlErrors::get_gl_errors(gl).context("glDebugMessageCallback")
     }
 
     /// Write all collected debug messages to stderr and clear the buffer.
