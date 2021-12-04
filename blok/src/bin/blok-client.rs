@@ -1,5 +1,5 @@
 use anyhow::{Result, anyhow};
-use blok::client::graphics::parameters;
+use blok::client::graphics::{GlDebugMessageBuffer, parameters};
 use opengl::gl::{self, Gl};
 use std::ffi::c_void;
 
@@ -35,7 +35,18 @@ fn main() -> Result<()>
         sdl_video.gl_get_proc_address(proc_name) as *const c_void
     });
 
+    // Collect OpenGL debug messages.
+    let gl_debug = GlDebugMessageBuffer::new();
+    unsafe {
+        gl.Enable(gl::DEBUG_OUTPUT);
+        gl.Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS);
+        gl_debug.install(&gl);
+    }
+
     'outer: loop {
+
+        // Print debug messages.
+        gl_debug.flush();
 
         // Handle SDL events.
         for sdl_event in sdl_event_pump.poll_iter() {
