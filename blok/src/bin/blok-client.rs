@@ -9,7 +9,7 @@ use blok::{
     try_gl,
 };
 use glam::{Mat4, ivec3};
-use opengl::gl::{self, Gl};
+use opengl::gl;
 use std::ffi::c_void;
 
 fn main() -> Result<()>
@@ -47,18 +47,18 @@ unsafe fn unsafe_main() -> Result<()>
     let _gl_context = sdl_window.gl_create_context().map_err(|e| anyhow!(e))?;
 
     // Load OpenGL procedures into global function pointers.
-    let gl = &Gl::load_with(|proc_name| {
+    gl::load_with(|proc_name| {
         sdl_video.gl_get_proc_address(proc_name) as *const c_void
     });
 
     // Collect OpenGL debug messages.
     let gl_debug = GlDebugMessageBuffer::new();
-    try_gl! { gl.Enable(gl::DEBUG_OUTPUT); }
-    try_gl! { gl.Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS); }
-    gl_debug.install(gl)?;
+    try_gl! { gl::Enable(gl::DEBUG_OUTPUT); }
+    try_gl! { gl::Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS); }
+    gl_debug.install()?;
 
     // Create rendering pipelines.
-    let trivial_block_pipeline = TrivialBlockPipeline::new(gl)?;
+    let trivial_block_pipeline = TrivialBlockPipeline::new()?;
 
     'outer: loop {
 
@@ -75,10 +75,10 @@ unsafe fn unsafe_main() -> Result<()>
         }
 
         // Draw to the buffer.
-        try_gl! { gl.ClearColor(0.1, 0.2, 0.9, 1.0); }
-        try_gl! { gl.Clear(gl::COLOR_BUFFER_BIT); }
+        try_gl! { gl::ClearColor(0.1, 0.2, 0.9, 1.0); }
+        try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
         let tbfs = TrivialBlockFaceSet{chunk_position: ivec3(0, 0, 0)};
-        trivial_block_pipeline.render(gl, 16, &Mat4::IDENTITY, [&tbfs])?;
+        trivial_block_pipeline.render(16, &Mat4::IDENTITY, [&tbfs])?;
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();

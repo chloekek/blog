@@ -1,6 +1,6 @@
 use crate::try_gl;
 use anyhow::Result;
-use opengl::gl::{Gl, types::*};
+use opengl::gl::{self, types::*};
 use std::{cell::RefCell, ffi::c_void, slice};
 
 /// Buffer into which to collect OpenGL debug messages.
@@ -21,10 +21,10 @@ impl GlDebugMessageBuffer
 
     /// Call `glDebugMessageCallback` with appropriate arguments.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn install(&self, gl: &Gl) -> Result<()>
+    pub unsafe fn install(&self) -> Result<()>
     {
         try_gl! {
-            gl.DebugMessageCallback(
+            gl::DebugMessageCallback(
                 Some(Self::debug_callback),
                 self as *const Self as *mut c_void,
             );

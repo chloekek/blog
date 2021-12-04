@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use opengl::gl::{self, Gl, types::*};
+use opengl::gl::{self, types::*};
 use std::{error::Error, fmt};
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -21,16 +21,15 @@ pub fn context<C>(result: Result<(), GlErrors>, context: C) -> Result<()>
 #[macro_export]
 macro_rules! try_gl
 {
-    { $gl:ident . $proc:ident ( $($argument:expr),* $(,)? ) ; } => {
-        try_gl! { $gl.$proc($($argument),*) } ;
+    { $gl:ident :: $proc:ident ( $($argument:expr),* $(,)? ) ; } => {
+        try_gl! { $gl::$proc($($argument),*) } ;
     };
 
-    { $gl:ident . $proc:ident ( $($argument:expr),* $(,)? ) } => {
+    { $gl:ident :: $proc:ident ( $($argument:expr),* $(,)? ) } => {
         {
-            let gl = $gl;
-            let result = gl.$proc($($argument),*);
+            let result = $gl::$proc($($argument),*);
             $crate::client::graphics::context(
-                $crate::client::graphics::GlErrors::get_gl_errors(gl),
+                $crate::client::graphics::GlErrors::get_gl_errors(),
                 concat!("gl", stringify!($proc)),
             )?;
             result
@@ -66,11 +65,11 @@ impl GlErrors
     /// The error queue will be left empty when this method returns.
     #[doc = crate::doc_safety_opengl!()]
     #[inline(never)]
-    pub unsafe fn get_gl_errors(gl: &Gl) -> Result<(), Self>
+    pub unsafe fn get_gl_errors() -> Result<(), Self>
     {
         let mut errors = Vec::new();
         loop {
-            let error = gl.GetError();
+            let error = gl::GetError();
             if error == gl::NO_ERROR {
                 break;
             }

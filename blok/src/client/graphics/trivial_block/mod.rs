@@ -1,7 +1,7 @@
 use crate::try_gl;
 use anyhow::Result;
 use glam::{IVec3, Mat4};
-use opengl::gl::{self, Gl, types::*};
+use opengl::gl::{self, types::*};
 use std::borrow::Borrow;
 
 static VERTEX_SHADER_BINARY: &'static [u8] =
@@ -58,9 +58,9 @@ impl TrivialBlockPipeline
 {
     /// Compile the pipeline.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn new(gl: &Gl) -> Result<Self>
+    pub unsafe fn new() -> Result<Self>
     {
-        let program = try_gl! { gl.CreateProgram() };
+        let program = try_gl! { gl::CreateProgram() };
         Ok(Self{program})
     }
 
@@ -78,7 +78,6 @@ impl TrivialBlockPipeline
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn render<'a, I, M>(
         &self,
-        gl: &Gl,
         atlas_len: usize,
         vp_matrix: &Mat4,
         models: I,
@@ -86,9 +85,9 @@ impl TrivialBlockPipeline
         where I: IntoIterator<Item=M>
             , M: Borrow<TrivialBlockFaceSet>
     {
-        try_gl! { gl.UseProgram(self.program); }
+        try_gl! { gl::UseProgram(self.program); }
 
-        try_gl! { gl.Uniform1f(1, atlas_len as f32); }
+        try_gl! { gl::Uniform1f(1, atlas_len as f32); }
 
         for model in models {
             let model = model.borrow();
@@ -99,18 +98,18 @@ impl TrivialBlockPipeline
             let mvp_matrix = *vp_matrix * m_matrix;
 
             // Render the faces of the chunk.
-            self.render_one(gl, &mvp_matrix)?;
+            self.render_one(&mvp_matrix)?;
         }
 
         Ok(())
     }
 
     /// Implementation detail of `render`.
-    unsafe fn render_one(&self, gl: &Gl, mvp_matrix: &Mat4) -> Result<()>
+    unsafe fn render_one(&self, mvp_matrix: &Mat4) -> Result<()>
     {
         let mvp_matrix = mvp_matrix.as_ref().as_ptr();
 
-        try_gl! { gl.UniformMatrix4fv(2, 1, gl::FALSE, mvp_matrix); }
+        try_gl! { gl::UniformMatrix4fv(2, 1, gl::FALSE, mvp_matrix); }
 
         Ok(())
     }

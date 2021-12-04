@@ -1,4 +1,4 @@
-use gl_generator::{Api, Fallbacks, Profile, Registry, StructGenerator};
+use gl_generator::{Api, Fallbacks, GlobalGenerator, Profile, Registry};
 use std::{env, fs::File, path::Path};
 
 fn main()
@@ -10,6 +10,6 @@ fn main()
 
     let mut file = File::create(Path::new(&dest).join("gl.rs")).unwrap();
     Registry::new(Api::Gl, gl_vsn, Profile::Core, Fallbacks::All, gl_exts)
-        .write_bindings(StructGenerator, &mut file)
+        .write_bindings(GlobalGenerator, &mut file)
         .unwrap();
 }
