@@ -22,7 +22,7 @@ pub fn context<C>(result: Result<(), GlErrors>, context: C) -> Result<()>
 macro_rules! try_gl
 {
     { $gl:ident :: $proc:ident ( $($argument:expr),* $(,)? ) ; } => {
-        try_gl! { $gl::$proc($($argument),*) } ;
+        { try_gl! { $gl::$proc($($argument),*) } ; }
     };
 
     { $gl:ident :: $proc:ident ( $($argument:expr),* $(,)? ) } => {

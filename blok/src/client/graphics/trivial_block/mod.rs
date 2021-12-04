@@ -1,8 +1,9 @@
 use crate::try_gl;
 use anyhow::Result;
+use defer_lite::defer;
 use glam::{IVec3, Mat4};
 use opengl::gl::{self, types::*};
-use std::borrow::Borrow;
+use std::{borrow::Borrow, ptr::null};
 
 static VERTEX_SHADER_BINARY: &'static [u8] =
     include_bytes!(concat!(env!("OUT_DIR"), "/client/graphics/trivial_block/shader.vert.spv"));
@@ -54,14 +55,59 @@ pub struct TrivialBlockPipeline
     program: GLuint,
 }
 
+impl Drop for TrivialBlockPipeline
+{
+    fn drop(&mut self)
+    {
+        // SAFETY: Provided by caller of `new`.
+        unsafe {
+            gl::DeleteProgram(self.program);
+        }
+    }
+}
+
 impl TrivialBlockPipeline
 {
     /// Compile the pipeline.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn new() -> Result<Self>
+    pub unsafe fn new(fragment_shader: GLuint) -> Result<Self>
     {
-        let program = try_gl! { gl::CreateProgram() };
-        Ok(Self{program})
+        // Mutating self so that if any step fails,
+        // then the previous steps get cleaned up.
+        let mut this = Self{program: 0};
+
+        let vertex_shader = try_gl! { gl::CreateShader(gl::VERTEX_SHADER) };
+        defer! { gl::DeleteShader(vertex_shader); }
+
+        try_gl! {
+            gl::ShaderBinary(
+                /* count        */ 1,
+                /* shaders      */ &vertex_shader,
+                /* binaryFormat */ gl::SHADER_BINARY_FORMAT_SPIR_V_ARB,
+                /* binary       */ VERTEX_SHADER_BINARY.as_ptr() as _,
+                /* length       */ VERTEX_SHADER_BINARY.len() as _,
+            );
+        }
+
+        try_gl! {
+            gl::SpecializeShaderARB(
+                /* shader         */ vertex_shader,
+                /* pEntryPoint    */ "main\0".as_ptr() as _,
+                /* numSpecializationConstants */ 0,
+                /* pConstantIndex */ null(),
+                /* pConstantValue */ null(),
+            );
+        }
+
+        this.program = try_gl! { gl::CreateProgram() };
+
+        try_gl! { gl::AttachShader(this.program, vertex_shader); }
+        try_gl! { gl::AttachShader(this.program, fragment_shader); }
+        try_gl! { gl::LinkProgram(this.program); }
+        try_gl! { gl::DetachShader(this.program, fragment_shader); }
+        try_gl! { gl::DetachShader(this.program, vertex_shader); }
+
+        Ok(this)
     }
 
     /// Render a collection of sets of trivial block faces.

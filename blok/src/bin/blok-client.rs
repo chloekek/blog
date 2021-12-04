@@ -58,7 +58,8 @@ unsafe fn unsafe_main() -> Result<()>
     gl_debug.install()?;
 
     // Create rendering pipelines.
-    let trivial_block_pipeline = TrivialBlockPipeline::new()?;
+    let fragment_shader = todo!();
+    let trivial_block_pipeline = TrivialBlockPipeline::new(fragment_shader)?;
 
     'outer: loop {
 
