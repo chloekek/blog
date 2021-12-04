@@ -2,11 +2,13 @@ use anyhow::{Result, anyhow};
 use blok::{
     client::graphics::{
         GlDebugMessageBuffer,
+        TrivialBlockFaceSet,
         TrivialBlockPipeline,
         parameters,
     },
     try_gl,
 };
+use glam::{Mat4, ivec3};
 use opengl::gl::{self, Gl};
 use std::ffi::c_void;
 
@@ -61,6 +63,7 @@ unsafe fn unsafe_main() -> Result<()>
     'outer: loop {
 
         // Print debug messages.
+        // TODO: Invoke this if there is an Err to be propagated.
         gl_debug.flush();
 
         // Handle SDL events.
@@ -74,6 +77,8 @@ unsafe fn unsafe_main() -> Result<()>
         // Draw to the buffer.
         try_gl! { gl.ClearColor(0.1, 0.2, 0.9, 1.0); }
         try_gl! { gl.Clear(gl::COLOR_BUFFER_BIT); }
+        let tbfs = TrivialBlockFaceSet{chunk_position: ivec3(0, 0, 0)};
+        trivial_block_pipeline.render(gl, 16, &Mat4::IDENTITY, [&tbfs])?;
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();

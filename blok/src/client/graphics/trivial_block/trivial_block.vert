@@ -1,13 +1,8 @@
 #version 450 core
 
-/// The number of textures in one dimension of the texture atlas.
-layout(location = 1) uniform float texture_atlas_size;
-
-/// View–projection matrix.
-layout(location = 2) uniform mat4 vp_matrix;
-
-/// See [`TrivialBlockFaceSet`].
-layout(location = 3) uniform ivec3 chunk_position;
+/// See [`TrivialBlockPipeline::render`].
+layout(location = 1) uniform float atlas_len;
+layout(location = 2) uniform mat4 mvp_matrix;
 
 /// See [`TrivialBlockFace`].
 layout(location = 0) in uint face_xy;
@@ -67,18 +62,17 @@ void main()
 {
     // Some attributes are packed into four bits
     // because they only ever range from 0 through 15.
-    // We unpack them into integer variables here,
-    // and also add them to the chunk position.
-    int  face_x = 16 * chunk_position.x + int(face_xy >> 4);
-    int  face_y = 16 * chunk_position.y + int(face_xy & 0xFu);
-    int  face_z = 16 * chunk_position.z + int(face_zf >> 4);
+    // We unpack them into integer variables here.
+    int  face_x = int(face_xy >> 4);
+    int  face_y = int(face_xy & 0xFu);
+    int  face_z = int(face_zf >> 4);
     uint face_f = face_zf & 0xFu;
 
     // The corner position depends on the face position
     // and which of the four corners we are processing.
     vec3 center = vec3(face_x, face_y, face_z);
     vec3 corner = corner_positions[4 * face_f + gl_VertexID];
-    gl_Position = vp_matrix * vec4(center + corner, 1.0);
+    gl_Position = mvp_matrix * vec4(center + corner, 1.0);
 
     // The texture coordinates also depend on which corner we are processing.
     // Furthermore, they need to be normalized into the interval [0, 1]

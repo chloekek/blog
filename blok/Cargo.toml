@@ -6,6 +6,9 @@ edition = "2021"
 [dependencies.anyhow]
 version = "^1.0.51"
 
+[dependencies.glam]
+version = "~0.20.1"
+
 [dependencies.sdl2]
 version = "~0.35.1"
 
