@@ -58,6 +58,7 @@ pub struct TrivialBlockFaceSet
 pub struct TrivialBlockPipeline
 {
     program: GLuint,
+    vertex_array: GLuint,
 }
 
 impl Drop for TrivialBlockPipeline
@@ -67,6 +68,7 @@ impl Drop for TrivialBlockPipeline
         // SAFETY: Provided by caller of `new`.
         unsafe {
             gl::DeleteProgram(self.program);
+            gl::DeleteVertexArrays(1, &self.vertex_array);
         }
     }
 }
@@ -77,10 +79,15 @@ impl TrivialBlockPipeline
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn new(fragment_shader: &GenericFragmentShader) -> Result<Self>
     {
-        // Mutating self so that if any step fails,
-        // then the previous steps get cleaned up.
-        let mut this = Self{program: 0};
+        let mut this = Self{program: 0, vertex_array: 0};
+        this.make_program(fragment_shader)?;
+        this.make_vertex_array()?;
+        Ok(this)
+    }
 
+    unsafe fn make_program(&mut self, fragment_shader: &GenericFragmentShader)
+        -> Result<()>
+    {
         let vertex_shader = try_gl! { gl::CreateShader(gl::VERTEX_SHADER) };
         defer! { gl::DeleteShader(vertex_shader); }
 
@@ -104,15 +111,47 @@ impl TrivialBlockPipeline
             );
         }
 
-        this.program = try_gl! { gl::CreateProgram() };
+        self.program = try_gl! { gl::CreateProgram() };
 
-        try_gl! { gl::AttachShader(this.program, vertex_shader); }
-        try_gl! { gl::AttachShader(this.program, fragment_shader.as_raw()); }
-        try_gl! { gl::LinkProgram(this.program); }
-        try_gl! { gl::DetachShader(this.program, fragment_shader.as_raw()); }
-        try_gl! { gl::DetachShader(this.program, vertex_shader); }
+        try_gl! { gl::AttachShader(self.program, vertex_shader); }
+        try_gl! { gl::AttachShader(self.program, fragment_shader.as_raw()); }
+        try_gl! { gl::LinkProgram(self.program); }
+        try_gl! { gl::DetachShader(self.program, fragment_shader.as_raw()); }
+        try_gl! { gl::DetachShader(self.program, vertex_shader); }
 
-        Ok(this)
+        Ok(())
+    }
+
+    unsafe fn make_vertex_array(&mut self) -> Result<()>
+    {
+        // Create vertex array.
+        try_gl! { gl::CreateVertexArrays(1, &mut self.vertex_array); }
+
+        // Convenient alias.
+        let vao = self.vertex_array;
+
+        // Enable vertex attributes.
+        try_gl! { gl::EnableVertexArrayAttrib(vao, 0); }
+        try_gl! { gl::EnableVertexArrayAttrib(vao, 1); }
+        try_gl! { gl::EnableVertexArrayAttrib(vao, 2); }
+        try_gl! { gl::EnableVertexArrayAttrib(vao, 3); }
+
+        // Associate the attributes with the sole binding.
+        try_gl! { gl::VertexArrayAttribBinding(vao, 0, 0); }
+        try_gl! { gl::VertexArrayAttribBinding(vao, 1, 0); }
+        try_gl! { gl::VertexArrayAttribBinding(vao, 2, 0); }
+        try_gl! { gl::VertexArrayAttribBinding(vao, 3, 0); }
+
+        // Configure the formats of the attributes.
+        try_gl! { gl::VertexArrayAttribIFormat(vao, 0, 1, gl::UNSIGNED_BYTE,  0); }
+        try_gl! { gl::VertexArrayAttribIFormat(vao, 1, 1, gl::UNSIGNED_BYTE,  1); }
+        try_gl! { gl::VertexArrayAttribIFormat(vao, 2, 1, gl::UNSIGNED_SHORT, 2); }
+        try_gl! { gl::VertexArrayAttribIFormat(vao, 3, 1, gl::UNSIGNED_SHORT, 4); }
+
+        // We draw quads, and each quad has four vertices.
+        try_gl! { gl::VertexArrayBindingDivisor(vao, 0, 4); }
+
+        Ok(())
     }
 
     /// Render a collection of sets of trivial block faces.
