@@ -9,7 +9,7 @@ use blok::{
     },
     try_gl,
 };
-use glam::{Mat4, ivec3};
+use glam::{Mat4, ivec2, ivec3};
 use opengl::gl;
 use std::ffi::c_void;
 
@@ -94,6 +94,6 @@ unsafe fn draw(trivial_block_pipeline: &TrivialBlockPipeline) -> Result<()>
     try_gl! { gl::ClearColor(0.1, 0.2, 0.9, 1.0); }
     try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
     let tbfs = TrivialBlockFaceSet{chunk_position: ivec3(0, 0, 0)};
-    trivial_block_pipeline.render(16, &Mat4::IDENTITY, [&tbfs])?;
+    trivial_block_pipeline.render(&ivec2(16, 8), &Mat4::IDENTITY, [&tbfs])?;
     Ok(())
 }

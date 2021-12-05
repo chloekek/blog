@@ -1,7 +1,7 @@
 use crate::{client::graphics::GenericFragmentShader, try_gl};
 use anyhow::Result;
 use defer_lite::defer;
-use glam::{IVec3, Mat4};
+use glam::{IVec2, IVec3, Mat4};
 use opengl::gl::{self, types::*};
 use std::{borrow::Borrow, ptr::null};
 
@@ -120,8 +120,8 @@ impl TrivialBlockPipeline
     /// # Parameters
     ///
     /// <dl>
-    /// <dt><code>atlas_len</code></dt>
-    /// <dd>The number of textures in one dimension of the texture atlas.</dd>
+    /// <dt><code>atlas_size</code></dt>
+    /// <dd>The number of textures in the texture atlas.</dd>
     /// <dt><code>vp_matrix</code></dt>
     /// <dd>The view–projection matrix to apply to each face.</dd>
     /// </dl>
@@ -129,7 +129,7 @@ impl TrivialBlockPipeline
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn render<'a, I, M>(
         &self,
-        atlas_len: usize,
+        atlas_size: &IVec2,
         vp_matrix: &Mat4,
         models: I,
     ) -> Result<()>
@@ -138,7 +138,7 @@ impl TrivialBlockPipeline
     {
         try_gl! { gl::UseProgram(self.program); }
 
-        try_gl! { gl::Uniform1f(1, atlas_len as f32); }
+        try_gl! { gl::Uniform2f(1, atlas_size.x as f32, atlas_size.y as f32); }
 
         for model in models {
             let model = model.borrow();

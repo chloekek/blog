@@ -1,7 +1,7 @@
 #version 450 core
 
 /// See [`TrivialBlockPipeline::render`].
-layout(location = 1) uniform float atlas_len;
+layout(location = 1) uniform vec2 atlas_size;
 layout(location = 2) uniform mat4 mvp_matrix;
 
 /// See [`TrivialBlockFace`].
@@ -78,5 +78,5 @@ void main()
     // Furthermore, they need to be normalized into the interval [0, 1]
     // so we divide them by the number of textures in the texture atlas.
     vec2 face_uv = vec2(face_u, face_v);
-    fragment_uv = (face_uv + uv_per_corner[gl_VertexID]) / atlas_len;
+    fragment_uv = (face_uv + uv_per_corner[gl_VertexID]) / atlas_size;
 }
