@@ -180,9 +180,16 @@ impl TrivialBlockPipeline
         where I: IntoIterator<Item=M>
             , M: Borrow<TrivialBlockFaceSet>
     {
+        // Select program and vertex array.
         try_gl! { gl::UseProgram(self.program); }
         try_gl! { gl::BindVertexArray(self.vertex_array); }
 
+        // Configure face culling.
+        try_gl! { gl::Enable(gl::CULL_FACE); }
+        try_gl! { gl::CullFace(gl::BACK); }
+        try_gl! { gl::FrontFace(gl::CCW); }
+
+        // Set uniforms common to all chunks.
         try_gl! { gl::Uniform2f(1, atlas_size.x as f32, atlas_size.y as f32); }
 
         for model in models {
