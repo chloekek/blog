@@ -25,6 +25,7 @@ fn set_link_search()
 fn compile_shaders()
 {
     let shaders = &[
+        ("frag", "client/graphics/generic_fragment_shader/shader.frag"),
         ("vert", "client/graphics/trivial_block/shader.vert"),
     ];
 

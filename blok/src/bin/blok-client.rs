@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use blok::{
     client::graphics::{
+        GenericFragmentShader,
         GlDebugMessageBuffer,
         TrivialBlockFaceSet,
         TrivialBlockPipeline,
@@ -58,8 +59,8 @@ unsafe fn unsafe_main() -> Result<()>
     gl_debug.install()?;
 
     // Create rendering pipelines.
-    let fragment_shader = todo!();
-    let trivial_block_pipeline = TrivialBlockPipeline::new(fragment_shader)?;
+    let generic_fragment_shader = GenericFragmentShader::new()?;
+    let trivial_block_pipeline = TrivialBlockPipeline::new(&generic_fragment_shader)?;
 
     'outer: loop {
 

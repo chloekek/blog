@@ -1,4 +1,4 @@
-use crate::try_gl;
+use crate::{client::graphics::GenericFragmentShader, try_gl};
 use anyhow::Result;
 use defer_lite::defer;
 use glam::{IVec3, Mat4};
@@ -6,7 +6,12 @@ use opengl::gl::{self, types::*};
 use std::{borrow::Borrow, ptr::null};
 
 static VERTEX_SHADER_BINARY: &'static [u8] =
-    include_bytes!(concat!(env!("OUT_DIR"), "/client/graphics/trivial_block/shader.vert.spv"));
+    include_bytes!(
+        concat!(
+            env!("OUT_DIR"),
+            "/client/graphics/trivial_block/shader.vert.spv",
+        )
+    );
 
 /// Vertex buffer entry for the trivial block drawing pipeline.
 ///
@@ -70,7 +75,7 @@ impl TrivialBlockPipeline
 {
     /// Compile the pipeline.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn new(fragment_shader: GLuint) -> Result<Self>
+    pub unsafe fn new(fragment_shader: &GenericFragmentShader) -> Result<Self>
     {
         // Mutating self so that if any step fails,
         // then the previous steps get cleaned up.
@@ -102,9 +107,9 @@ impl TrivialBlockPipeline
         this.program = try_gl! { gl::CreateProgram() };
 
         try_gl! { gl::AttachShader(this.program, vertex_shader); }
-        try_gl! { gl::AttachShader(this.program, fragment_shader); }
+        try_gl! { gl::AttachShader(this.program, fragment_shader.as_raw()); }
         try_gl! { gl::LinkProgram(this.program); }
-        try_gl! { gl::DetachShader(this.program, fragment_shader); }
+        try_gl! { gl::DetachShader(this.program, fragment_shader.as_raw()); }
         try_gl! { gl::DetachShader(this.program, vertex_shader); }
 
         Ok(this)
