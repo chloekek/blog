@@ -3,7 +3,7 @@ use anyhow::Result;
 use defer_lite::defer;
 use glam::{IVec2, IVec3, Mat4};
 use opengl::gl::{self, types::*};
-use std::{borrow::Borrow, ptr::null};
+use std::{borrow::Borrow, mem::{size_of, size_of_val}, ptr::null};
 
 static VERTEX_SHADER_BINARY: &'static [u8] =
     include_bytes!(
@@ -45,13 +45,52 @@ pub struct TrivialBlockFace
 /// Set of trivial block faces that appear in a chunk.
 pub struct TrivialBlockFaceSet
 {
-    /// The position of the chunk that contains the faces.
+    buffer: GLuint,
+    face_count: usize,
+    chunk_position: IVec3,
+}
+
+impl Drop for TrivialBlockFaceSet
+{
+    fn drop(&mut self)
+    {
+        // SAFETY: Provided by caller of `new`.
+        unsafe {
+            gl::DeleteBuffers(1, &self.buffer);
+        }
+    }
+}
+
+impl TrivialBlockFaceSet
+{
+    /// Create an empty face set for a given chunk.
     ///
+    /// The `chunk_position` parameter specifies the chunk.
     /// An increment of 1 in either dimension corresponds
     /// to the adjacent chunk in that dimension.
-    pub chunk_position: IVec3,
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn new(chunk_position: IVec3) -> Result<Self>
+    {
+        let mut this = Self{buffer: 0, face_count: 0, chunk_position};
+        try_gl! { gl::CreateBuffers(1, &mut this.buffer); }
+        Ok(this)
+    }
 
-    // pub buffer: BufferRef<TrivialBlockFace>,
+    /// Set the faces of the face set.
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn set_data(&mut self, data: &[TrivialBlockFace]) -> Result<()>
+    {
+        try_gl! {
+            gl::NamedBufferData(
+                /* buffer */ self.buffer,
+                /* size   */ size_of_val(data) as _,
+                /* data   */ data.as_ptr() as _,
+                /* usage  */ gl::STATIC_DRAW,
+            );
+        }
+        self.face_count = data.len();
+        Ok(())
+    }
 }
 
 /// Specialized pipeline for rendering trivial blocks.
@@ -153,7 +192,9 @@ impl TrivialBlockPipeline
         try_gl! { gl::VertexArrayAttribIFormat(vao, 2, 1, gl::UNSIGNED_SHORT, 2); }
         try_gl! { gl::VertexArrayAttribIFormat(vao, 3, 1, gl::UNSIGNED_SHORT, 4); }
 
-        // We draw quads, and each quad has four vertices.
+        // There is only one buffer entry for each face,
+        // and faces consist of four vertices (its corners).
+        // So drawing must advance only once every four vertices.
         try_gl! { gl::VertexArrayBindingDivisor(vao, 0, 4); }
 
         Ok(())
@@ -201,18 +242,46 @@ impl TrivialBlockPipeline
             let mvp_matrix = *vp_matrix * m_matrix;
 
             // Render the faces of the chunk.
-            self.render_one(&mvp_matrix)?;
+            self.render_one(&mvp_matrix, model)?;
         }
 
         Ok(())
     }
 
     /// Implementation detail of `render`.
-    unsafe fn render_one(&self, mvp_matrix: &Mat4) -> Result<()>
+    unsafe fn render_one(&self, mvp_matrix: &Mat4, model: &TrivialBlockFaceSet)
+        -> Result<()>
     {
+        // Set uniforms specific to this chunk.
         let mvp_matrix = mvp_matrix.as_ref().as_ptr();
-
         try_gl! { gl::UniformMatrix4fv(2, 1, gl::FALSE, mvp_matrix); }
+
+        // Select the buffer to read faces from.
+        try_gl! {
+            gl::BindVertexBuffer(
+                /* bindingindex */ 0,
+                /* buffer       */ model.buffer,
+                /* offset       */ 0,
+                /* stride       */ size_of::<TrivialBlockFace>() as _,
+            );
+        }
+
+        // Draw all the faces in a single draw call.
+        try_gl! {
+            gl::DrawArraysInstanced(
+                /* mode  */ gl::TRIANGLE_FAN,
+                /* first */ 0,
+
+                // Every face consists of four vertices.
+                /* count */ 4,
+
+                // According to the glDrawArraysInstanced manual entry,
+                // attributes with divisor N advance once every N instances.
+                // We want to advance once for each face, and our divisor is 4,
+                // so we must multiply the face count by 4 here.
+                /* primcount */ (4 * model.face_count) as _,
+            );
+        }
 
         Ok(())
     }

@@ -93,7 +93,7 @@ unsafe fn draw(trivial_block_pipeline: &TrivialBlockPipeline) -> Result<()>
     // Draw to the buffer.
     try_gl! { gl::ClearColor(0.1, 0.2, 0.9, 1.0); }
     try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
-    let tbfs = TrivialBlockFaceSet{chunk_position: ivec3(0, 0, 0)};
+    let tbfs = TrivialBlockFaceSet::new(ivec3(0, 0, 0))?;
     trivial_block_pipeline.render(&ivec2(16, 8), &Mat4::IDENTITY, [&tbfs])?;
     Ok(())
 }
