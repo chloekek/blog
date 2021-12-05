@@ -2,15 +2,16 @@ use anyhow::{Result, anyhow};
 use blok::{
     client::graphics::{
         GenericFragmentShader,
+        TrivialBlockFace,
         TrivialBlockFaceSet,
         TrivialBlockPipeline,
         parameters,
     },
     try_gl,
 };
-use glam::{Mat4, ivec2, ivec3};
+use glam::{Mat4, Vec3, ivec2, ivec3};
 use opengl::gl;
-use std::ffi::c_void;
+use std::{f32::consts::PI, ffi::c_void};
 
 fn main() -> Result<()>
 {
@@ -55,8 +56,22 @@ unsafe fn unsafe_main() -> Result<()>
     let generic_fragment_shader = GenericFragmentShader::new()?;
     let trivial_block_pipeline = TrivialBlockPipeline::new(&generic_fragment_shader)?;
 
-    'outer: loop {
+    // Create rendering state.
+    let trivial_block_face_sets = &mut [
+        TrivialBlockFaceSet::new(ivec3(0, 0, 0))?,
+    ];
 
+    trivial_block_face_sets[0].set_data(&[
+        // TODO: Call TrivialBlockFace::new.
+        TrivialBlockFace{
+            xy: 0,
+            zf: 3,
+            u: 0,
+            v: 0,
+        },
+    ])?;
+
+    'outer: loop {
 
         // Handle SDL events.
         for sdl_event in sdl_event_pump.poll_iter() {
@@ -66,7 +81,7 @@ unsafe fn unsafe_main() -> Result<()>
             }
         }
 
-        draw(&trivial_block_pipeline)?;
+        draw(&trivial_block_pipeline, trivial_block_face_sets)?;
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();
@@ -76,12 +91,33 @@ unsafe fn unsafe_main() -> Result<()>
     Ok(())
 }
 
-unsafe fn draw(trivial_block_pipeline: &TrivialBlockPipeline) -> Result<()>
+unsafe fn draw(
+    trivial_block_pipeline: &TrivialBlockPipeline,
+    trivial_block_face_sets: &[TrivialBlockFaceSet],
+) -> Result<()>
 {
-    // Draw to the buffer.
-    try_gl! { gl::ClearColor(0.1, 0.2, 0.9, 1.0); }
+    try_gl! { gl::ClearColor(0.1, 0.9, 0.2, 1.0); }
     try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
-    let tbfs = TrivialBlockFaceSet::new(ivec3(0, 0, 0))?;
-    trivial_block_pipeline.render(&ivec2(16, 8), &Mat4::IDENTITY, [&tbfs])?;
+
+    let v_matrix = Mat4::look_at_rh(
+        /* eye    */ Vec3::new(0.0, -2.0, 0.0),
+        /* center */ Vec3::new(0.0, 0.0, 0.0),
+        /* up     */ Vec3::new(0.0, 0.0, 1.0),
+    );
+
+    let p_matrix = Mat4::perspective_rh(
+        /* fov_y_radians */ PI / 4.0,
+        /* aspect_ratio  */ 640.0 / 480.0,
+        /* z_near        */ 1.0,
+        /* z_far         */ 1000.0,
+    );
+
+    let vp_matrix = p_matrix * v_matrix;
+
+    trivial_block_pipeline.render(
+        /* atlas_size */ &ivec2(16, 8),
+        /* vp_matrix  */ &vp_matrix,
+        /* models     */ trivial_block_face_sets,
+    )?;
     Ok(())
 }
