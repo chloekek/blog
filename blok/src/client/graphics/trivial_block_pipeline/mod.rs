@@ -55,6 +55,11 @@ pub struct TrivialBlockFaceSet
 }
 
 /// Specialized pipeline for rendering trivial blocks.
+///
+/// A trivial block is an opaque unit cube at integer coordinates.
+/// The vertex shader will generate the four vertices of each face,
+/// so the buffers passed to this pipeline store only one entry for each face.
+/// Faces that are adjacent to other trivial blocks do not have to be included.
 pub struct TrivialBlockPipeline
 {
     program: GLuint,
