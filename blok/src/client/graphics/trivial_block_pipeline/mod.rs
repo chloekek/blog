@@ -9,7 +9,7 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
     include_bytes!(
         concat!(
             env!("OUT_DIR"),
-            "/client/graphics/trivial_block/shader.vert.spv",
+            "/client/graphics/trivial_block_pipeline/shader.vert.spv",
         )
     );
 

@@ -26,7 +26,7 @@ fn compile_shaders()
 {
     let shaders = &[
         ("frag", "client/graphics/generic_fragment_shader/shader.frag"),
-        ("vert", "client/graphics/trivial_block/shader.vert"),
+        ("vert", "client/graphics/trivial_block_pipeline/shader.vert"),
     ];
 
     let optimize = env::var("OPT_LEVEL").unwrap() != "0";
