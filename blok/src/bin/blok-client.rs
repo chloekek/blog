@@ -2,7 +2,6 @@ use anyhow::{Result, anyhow};
 use blok::{
     client::graphics::{
         GenericFragmentShader,
-        GlDebugMessageBuffer,
         TrivialBlockFaceSet,
         TrivialBlockPipeline,
         parameters,
@@ -52,20 +51,12 @@ unsafe fn unsafe_main() -> Result<()>
         sdl_video.gl_get_proc_address(proc_name) as *const c_void
     });
 
-    // Collect OpenGL debug messages.
-    let gl_debug = GlDebugMessageBuffer::new();
-    try_gl! { gl::Enable(gl::DEBUG_OUTPUT); }
-    try_gl! { gl::Enable(gl::DEBUG_OUTPUT_SYNCHRONOUS); }
-    gl_debug.install()?;
-
     // Create rendering pipelines.
     let generic_fragment_shader = GenericFragmentShader::new()?;
     let trivial_block_pipeline = TrivialBlockPipeline::new(&generic_fragment_shader)?;
 
     'outer: loop {
 
-        // Print debug messages.
-        gl_debug.flush();
 
         // Handle SDL events.
         for sdl_event in sdl_event_pump.poll_iter() {
@@ -75,10 +66,7 @@ unsafe fn unsafe_main() -> Result<()>
             }
         }
 
-        if let Err(err) = draw(&trivial_block_pipeline) {
-            gl_debug.flush();
-            return Err(err);
-        }
+        draw(&trivial_block_pipeline)?;
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();
