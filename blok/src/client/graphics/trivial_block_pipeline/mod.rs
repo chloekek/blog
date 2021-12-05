@@ -176,6 +176,7 @@ impl TrivialBlockPipeline
             , M: Borrow<TrivialBlockFaceSet>
     {
         try_gl! { gl::UseProgram(self.program); }
+        try_gl! { gl::BindVertexArray(self.vertex_array); }
 
         try_gl! { gl::Uniform2f(1, atlas_size.x as f32, atlas_size.y as f32); }
 
