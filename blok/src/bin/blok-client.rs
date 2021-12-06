@@ -69,6 +69,18 @@ unsafe fn unsafe_main() -> Result<()>
             u: 0,
             v: 0,
         },
+        TrivialBlockFace{
+            xy: 0,
+            zf: 4,
+            u: 15,
+            v: 7,
+        },
+        TrivialBlockFace{
+            xy: 0,
+            zf: 0,
+            u: 7,
+            v: 3,
+        },
     ])?;
 
     'outer: loop {
@@ -100,7 +112,7 @@ unsafe fn draw(
     try_gl! { gl::Clear(gl::COLOR_BUFFER_BIT); }
 
     let v_matrix = Mat4::look_at_rh(
-        /* eye    */ Vec3::new(0.0, -2.0, 0.0),
+        /* eye    */ Vec3::new(2.0, -2.0, 2.0),
         /* center */ Vec3::new(0.0, 0.0, 0.0),
         /* up     */ Vec3::new(0.0, 0.0, 1.0),
     );

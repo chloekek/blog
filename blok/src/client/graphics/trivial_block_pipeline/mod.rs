@@ -221,6 +221,17 @@ impl TrivialBlockPipeline
         where I: IntoIterator<Item=M>
             , M: Borrow<TrivialBlockFaceSet>
     {
+        self.pre_render(atlas_size)?;
+        for model in models {
+            let model = model.borrow();
+            self.render_one(vp_matrix, model)?;
+        }
+        Ok(())
+    }
+
+    /// Implementation detail of `render`.
+    unsafe fn pre_render(&self, atlas_size: &IVec2) -> Result<()>
+    {
         // Select program and vertex array.
         try_gl! { gl::UseProgram(self.program); }
         try_gl! { gl::BindVertexArray(self.vertex_array); }
@@ -233,27 +244,20 @@ impl TrivialBlockPipeline
         // Set uniforms common to all chunks.
         try_gl! { gl::Uniform2f(1, atlas_size.x as f32, atlas_size.y as f32); }
 
-        for model in models {
-            let model = model.borrow();
-
-            // Compute the MVP matrix for the chunk.
-            let m_vector = (16 * model.chunk_position).as_vec3();
-            let m_matrix = Mat4::from_translation(m_vector);
-            let mvp_matrix = *vp_matrix * m_matrix;
-
-            // Render the faces of the chunk.
-            self.render_one(&mvp_matrix, model)?;
-        }
-
         Ok(())
     }
 
     /// Implementation detail of `render`.
-    unsafe fn render_one(&self, mvp_matrix: &Mat4, model: &TrivialBlockFaceSet)
+    unsafe fn render_one(&self, vp_matrix: &Mat4, model: &TrivialBlockFaceSet)
         -> Result<()>
     {
-        // Set uniforms specific to this chunk.
+        // Compute the MVP matrix for this chunk.
+        let m_vector = (16 * model.chunk_position).as_vec3();
+        let m_matrix = Mat4::from_translation(m_vector);
+        let mvp_matrix = *vp_matrix * m_matrix;
         let mvp_matrix = mvp_matrix.as_ref().as_ptr();
+
+        // Set uniforms specific to this chunk.
         try_gl! { gl::UniformMatrix4fv(2, 1, gl::FALSE, mvp_matrix); }
 
         // Select the buffer to read faces from.
