@@ -7,7 +7,7 @@ static FRAGMENT_SHADER_BINARY: &'static [u8] =
     include_bytes!(
         concat!(
             env!("OUT_DIR"),
-            "/client/graphics/generic_fragment_shader/shader.frag.spv",
+            "/client/graphics/generic_pipeline/shader.frag.spv",
         )
     );
 
