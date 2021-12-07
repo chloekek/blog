@@ -26,7 +26,10 @@ pub const BONES: usize = 6;
 #[repr(C)]
 pub struct Vertex
 {
+    /// Position of the vertex in model space.
     pub position: Vec3,
+
+    /// Texture coordinates of the vertex.
     pub texcoord: Vec2,
 
     /// Index of the bones to apply.
@@ -103,7 +106,10 @@ impl Model
 /// Parameters for a single rendering of a model.
 pub struct Instance
 {
+    /// Model matrix for the instance.
     pub m_matrix: Mat4,
+
+    /// Bone matrices for the instance.
     pub bone_matrices: [Mat4; BONES],
 }
 

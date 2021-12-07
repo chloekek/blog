@@ -169,7 +169,7 @@ unsafe fn draw(
     generic_pipeline.render(
         /* vp_matrix */ &vp_matrix,
         /* models    */ generic_models.iter().map(|(m, i)| (m, *i)),
-    );
+    )?;
 
     trivial_block_pipeline.render(
         /* atlas_size */ &ivec2(16, 8),
