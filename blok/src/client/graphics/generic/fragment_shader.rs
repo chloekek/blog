@@ -1,7 +1,6 @@
-use crate::try_gl;
+use crate::client::graphics::GlShader;
 use anyhow::Result;
-use opengl::gl::{self, types::*};
-use std::ptr::null;
+use opengl::gl;
 
 static FRAGMENT_SHADER_BINARY: &'static [u8] =
     include_bytes!(
@@ -14,18 +13,7 @@ static FRAGMENT_SHADER_BINARY: &'static [u8] =
 /// Fragment shader used by most pipelines.
 pub struct FragmentShader
 {
-    shader: GLuint,
-}
-
-impl Drop for FragmentShader
-{
-    fn drop(&mut self)
-    {
-        // SAFETY: Provided by caller of `new`.
-        unsafe {
-            gl::DeleteShader(self.shader);
-        }
-    }
+    inner: GlShader,
 }
 
 impl FragmentShader
@@ -34,38 +22,18 @@ impl FragmentShader
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn new() -> Result<Self>
     {
-        // Mutating self so that if any step fails,
-        // then the previous steps get cleaned up.
-        let mut this = Self{shader: 0};
-
-        this.shader = try_gl! { gl::CreateShader(gl::FRAGMENT_SHADER) };
-
-        try_gl! {
-            gl::ShaderBinary(
-                /* count        */ 1,
-                /* shaders      */ &this.shader,
-                /* binaryFormat */ gl::SHADER_BINARY_FORMAT_SPIR_V_ARB,
-                /* binary       */ FRAGMENT_SHADER_BINARY.as_ptr() as _,
-                /* length       */ FRAGMENT_SHADER_BINARY.len() as _,
-            );
-        }
-
-        try_gl! {
-            gl::SpecializeShaderARB(
-                /* shader         */ this.shader,
-                /* pEntryPoint    */ "main\0".as_ptr() as _,
-                /* numSpecializationConstants */ 0,
-                /* pConstantIndex */ null(),
-                /* pConstantValue */ null(),
-            );
-        }
-
-        Ok(this)
+        let inner = GlShader::new(
+            /* shader_type      */ gl::FRAGMENT_SHADER,
+            /* shader_binary    */ FRAGMENT_SHADER_BINARY,
+            /* constant_indices */ &[],
+            /* constant_values  */ &[],
+        )?;
+        Ok(Self{inner})
     }
 
-    /// Obtain the OpenGL name of the shader.
-    pub fn as_raw(&self) -> GLuint
+    /// The underlying shader.
+    pub fn as_shader(&self) -> &GlShader
     {
-        self.shader
+        &self.inner
     }
 }

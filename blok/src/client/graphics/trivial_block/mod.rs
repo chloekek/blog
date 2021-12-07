@@ -1,11 +1,13 @@
 //! Pipeline for rendering opaque unit cubes at integer coordinates.
 
-use crate::{client::graphics::{GlBuffer, generic::FragmentShader}, try_gl};
+use crate::{
+    client::graphics::{GlBuffer, GlShader, generic::FragmentShader},
+    try_gl,
+};
 use anyhow::Result;
-use defer_lite::defer;
 use glam::{IVec2, IVec3, Mat4};
 use opengl::gl::{self, types::*};
-use std::{borrow::Borrow, mem::size_of, ptr::null};
+use std::{borrow::Borrow, mem::size_of};
 
 static VERTEX_SHADER_BINARY: &'static [u8] =
     include_bytes!(
@@ -95,36 +97,20 @@ impl Pipeline
     unsafe fn make_program(&mut self, fragment_shader: &FragmentShader)
         -> Result<()>
     {
-        let vertex_shader = try_gl! { gl::CreateShader(gl::VERTEX_SHADER) };
-        defer! { gl::DeleteShader(vertex_shader); }
-
-        try_gl! {
-            gl::ShaderBinary(
-                /* count        */ 1,
-                /* shaders      */ &vertex_shader,
-                /* binaryFormat */ gl::SHADER_BINARY_FORMAT_SPIR_V_ARB,
-                /* binary       */ VERTEX_SHADER_BINARY.as_ptr() as _,
-                /* length       */ VERTEX_SHADER_BINARY.len() as _,
-            );
-        }
-
-        try_gl! {
-            gl::SpecializeShaderARB(
-                /* shader         */ vertex_shader,
-                /* pEntryPoint    */ "main\0".as_ptr() as _,
-                /* numSpecializationConstants */ 0,
-                /* pConstantIndex */ null(),
-                /* pConstantValue */ null(),
-            );
-        }
+        let vertex_shader = GlShader::new(
+            /* shader_type      */ gl::VERTEX_SHADER,
+            /* shader_binary    */ VERTEX_SHADER_BINARY,
+            /* constant_indices */ &[],
+            /* constant_values  */ &[],
+        )?;
 
         self.program = try_gl! { gl::CreateProgram() };
 
-        try_gl! { gl::AttachShader(self.program, vertex_shader); }
-        try_gl! { gl::AttachShader(self.program, fragment_shader.as_raw()); }
+        try_gl! { gl::AttachShader(self.program, vertex_shader.as_raw()); }
+        try_gl! { gl::AttachShader(self.program, fragment_shader.as_shader().as_raw()); }
         try_gl! { gl::LinkProgram(self.program); }
-        try_gl! { gl::DetachShader(self.program, fragment_shader.as_raw()); }
-        try_gl! { gl::DetachShader(self.program, vertex_shader); }
+        try_gl! { gl::DetachShader(self.program, fragment_shader.as_shader().as_raw()); }
+        try_gl! { gl::DetachShader(self.program, vertex_shader.as_raw()); }
 
         Ok(())
     }
