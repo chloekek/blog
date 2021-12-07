@@ -7,7 +7,7 @@ use anyhow::Result;
 use defer_lite::defer;
 use glam::{Mat4, Vec2, Vec3};
 use opengl::gl::{self, types::*};
-use std::{borrow::Borrow, mem::size_of, ptr::null};
+use std::{borrow::Borrow, mem::{size_of, size_of_val}, ptr::null};
 
 mod fragment_shader;
 
@@ -20,7 +20,7 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
     );
 
 /// Maximum number of bones supported.
-pub const BONES: GLuint = 6;
+pub const BONES: usize = 6;
 
 /// Vertex in a model’s vertex buffer.
 #[repr(C)]
@@ -44,11 +44,67 @@ pub struct Model
     index_count: usize,
 }
 
+impl Drop for Model
+{
+    fn drop(&mut self)
+    {
+        // SAFETY: Provided by caller of `new`.
+        unsafe {
+            gl::DeleteBuffers(1, &self.vertex_buffer);
+            gl::DeleteBuffers(1, &self.index_buffer);
+        }
+    }
+}
+
+impl Model
+{
+    /// Create an empty model.
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn new() -> Result<Self>
+    {
+        let mut this = Self{vertex_buffer: 0, index_buffer: 0, index_count: 0};
+        try_gl! { gl::CreateBuffers(1, &mut this.vertex_buffer); }
+        try_gl! { gl::CreateBuffers(1, &mut this.index_buffer); }
+        Ok(this)
+    }
+
+    /// Upload the vertices of the model.
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn upload_vertices(&mut self, data: &[Vertex]) -> Result<()>
+    {
+        try_gl! {
+            gl::NamedBufferData(
+                /* buffer */ self.vertex_buffer,
+                /* size   */ size_of_val(data) as _,
+                /* data   */ data.as_ptr() as _,
+                /* usage  */ gl::STATIC_DRAW,
+            );
+        }
+        Ok(())
+    }
+
+    /// Upload the indices of the model.
+    #[doc = crate::doc_safety_opengl!()]
+    pub unsafe fn upload_indices(&mut self, data: &[u32]) -> Result<()>
+    {
+        try_gl! {
+            gl::NamedBufferData(
+                /* buffer */ self.index_buffer,
+                /* size   */ size_of_val(data) as _,
+                /* data   */ data.as_ptr() as _,
+                /* usage  */ gl::STATIC_DRAW,
+            );
+        }
+        self.index_count = data.len();
+        Ok(())
+    }
+}
+
 /// Parameters for a single rendering of a model.
 pub struct Instance
 {
     pub m_matrix: Mat4,
-    pub bone_matrices: [Mat4; BONES as usize],
+    pub bone_matrices: [Mat4; BONES],
 }
 
 /// Pipeline for rendering triangle meshes.
@@ -104,7 +160,7 @@ impl Pipeline
                 /* pEntryPoint    */ "main\0".as_ptr() as _,
                 /* numSpecializationConstants */ 1,
                 /* pConstantIndex */ &0,
-                /* pConstantValue */ &BONES,
+                /* pConstantValue */ &(BONES as _),
             );
         }
 

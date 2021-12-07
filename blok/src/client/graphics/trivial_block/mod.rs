@@ -78,9 +78,9 @@ impl FaceSet
         Ok(this)
     }
 
-    /// Set the faces of the face set.
+    /// Upload the faces of the face set.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn set_data(&mut self, data: &[Face]) -> Result<()>
+    pub unsafe fn upload_faces(&mut self, data: &[Face]) -> Result<()>
     {
         try_gl! {
             gl::NamedBufferData(

@@ -7,7 +7,7 @@ use blok::{
     },
     try_gl,
 };
-use glam::{Mat4, Vec3, ivec2, ivec3};
+use glam::{Mat4, Vec3, ivec2, ivec3, vec2, vec3};
 use opengl::gl;
 use std::{f32::consts::PI, ffi::c_void};
 
@@ -56,11 +56,45 @@ unsafe fn unsafe_main() -> Result<()>
     let trivial_block_pipeline = trivial_block::Pipeline::new(&generic_fragment_shader)?;
 
     // Create rendering state.
+
+    let mut model = generic::Model::new()?;
+
+    model.upload_vertices(&[
+        generic::Vertex{
+            position: vec3(-1.0, -1.0, 0.0),
+            texcoord: vec2(0.0, 0.0),
+            bone: 0,
+        },
+        generic::Vertex{
+            position: vec3(1.0, -1.0, 0.0),
+            texcoord: vec2(1.0, 0.0),
+            bone: 0,
+        },
+        generic::Vertex{
+            position: vec3(0.0, 1.0, 0.0),
+            texcoord: vec2(0.0, 1.0),
+            bone: 0,
+        },
+    ])?;
+
+    model.upload_indices(&[
+        0, 1, 2,
+    ])?;
+
+    let instance = generic::Instance{
+        m_matrix: Mat4::IDENTITY,
+        bone_matrices: [Mat4::IDENTITY; generic::BONES],
+    };
+
+    let generic_models: &mut [(_, &[_])] = &mut [
+        (model, &[instance]),
+    ];
+
     let trivial_block_face_sets = &mut [
         trivial_block::FaceSet::new(ivec3(0, 0, 0))?,
     ];
 
-    trivial_block_face_sets[0].set_data(&[
+    trivial_block_face_sets[0].upload_faces(&[
         // TODO: Call TrivialBlockFace::new.
         trivial_block::Face{
             xy: 0,
@@ -92,7 +126,12 @@ unsafe fn unsafe_main() -> Result<()>
             }
         }
 
-        draw(&trivial_block_pipeline, trivial_block_face_sets)?;
+        draw(
+            &generic_pipeline,
+            &trivial_block_pipeline,
+            generic_models,
+            trivial_block_face_sets,
+        )?;
 
         // Present buffer we drew to.
         sdl_window.gl_swap_window();
@@ -103,7 +142,9 @@ unsafe fn unsafe_main() -> Result<()>
 }
 
 unsafe fn draw(
+    generic_pipeline: &generic::Pipeline,
     trivial_block_pipeline: &trivial_block::Pipeline,
+    generic_models: &[(generic::Model, &[generic::Instance])],
     trivial_block_face_sets: &[trivial_block::FaceSet],
 ) -> Result<()>
 {
@@ -125,10 +166,16 @@ unsafe fn draw(
 
     let vp_matrix = p_matrix * v_matrix;
 
+    generic_pipeline.render(
+        /* vp_matrix */ &vp_matrix,
+        /* models    */ generic_models.iter().map(|(m, i)| (m, *i)),
+    );
+
     trivial_block_pipeline.render(
         /* atlas_size */ &ivec2(16, 8),
         /* vp_matrix  */ &vp_matrix,
         /* models     */ trivial_block_face_sets,
     )?;
+
     Ok(())
 }
