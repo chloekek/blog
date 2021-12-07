@@ -2,7 +2,7 @@
 
 // This specialization constant is overridden during pipeline construction.
 // GLSL requires a default value and I picked 1 arbitrarily.
-layout(constant_id = 1) const uint BONES = 1;
+layout(constant_id = 0) const uint BONES = 1;
 
 layout(location = 0) uniform mat4 mvp_matrix;
 layout(location = 1) uniform mat4 bone_matrices[BONES];

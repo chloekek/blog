@@ -52,6 +52,7 @@ unsafe fn unsafe_main() -> Result<()>
 
     // Create rendering pipelines.
     let generic_fragment_shader = generic::FragmentShader::new()?;
+    let generic_pipeline = generic::Pipeline::new(&generic_fragment_shader)?;
     let trivial_block_pipeline = trivial_block::Pipeline::new(&generic_fragment_shader)?;
 
     // Create rendering state.
