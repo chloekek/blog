@@ -9,17 +9,17 @@ mod fragment_shader;
 mod instance;
 mod model;
 
-pub struct GenericPipeline
+pub struct Pipeline
 {
 }
 
-impl GenericPipeline
+impl Pipeline
 {
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn render<I, M, N>(models: I) -> Result<()>
         where I: IntoIterator<Item=(M, N)>
-            , M: Borrow<GenericModel>
-            , N: Borrow<GenericInstanceSet>
+            , M: Borrow<Model>
+            , N: Borrow<InstanceSet>
     {
         todo!()
     }

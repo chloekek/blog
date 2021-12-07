@@ -1,11 +1,9 @@
 use anyhow::{Result, anyhow};
 use blok::{
     client::graphics::{
-        GenericFragmentShader,
-        TrivialBlockFace,
-        TrivialBlockFaceSet,
-        TrivialBlockPipeline,
+        generic,
         parameters,
+        trivial_block,
     },
     try_gl,
 };
@@ -53,29 +51,29 @@ unsafe fn unsafe_main() -> Result<()>
     });
 
     // Create rendering pipelines.
-    let generic_fragment_shader = GenericFragmentShader::new()?;
-    let trivial_block_pipeline = TrivialBlockPipeline::new(&generic_fragment_shader)?;
+    let generic_fragment_shader = generic::FragmentShader::new()?;
+    let trivial_block_pipeline = trivial_block::Pipeline::new(&generic_fragment_shader)?;
 
     // Create rendering state.
     let trivial_block_face_sets = &mut [
-        TrivialBlockFaceSet::new(ivec3(0, 0, 0))?,
+        trivial_block::FaceSet::new(ivec3(0, 0, 0))?,
     ];
 
     trivial_block_face_sets[0].set_data(&[
         // TODO: Call TrivialBlockFace::new.
-        TrivialBlockFace{
+        trivial_block::Face{
             xy: 0,
             zf: 3,
             u: 0,
             v: 0,
         },
-        TrivialBlockFace{
+        trivial_block::Face{
             xy: 0,
             zf: 4,
             u: 15,
             v: 7,
         },
-        TrivialBlockFace{
+        trivial_block::Face{
             xy: 0,
             zf: 0,
             u: 7,
@@ -104,8 +102,8 @@ unsafe fn unsafe_main() -> Result<()>
 }
 
 unsafe fn draw(
-    trivial_block_pipeline: &TrivialBlockPipeline,
-    trivial_block_face_sets: &[TrivialBlockFaceSet],
+    trivial_block_pipeline: &trivial_block::Pipeline,
+    trivial_block_face_sets: &[trivial_block::FaceSet],
 ) -> Result<()>
 {
     try_gl! { gl::ClearColor(0.1, 0.9, 0.2, 1.0); }

@@ -1,11 +1,9 @@
 //! Graphics rendering pipelines.
 
-pub use self::generic_pipeline::*;
 pub use self::gl_error::*;
-pub use self::trivial_block_pipeline::*;
 
+pub mod generic;
 pub mod parameters;
+pub mod trivial_block;
 
-mod generic_pipeline;
 mod gl_error;
-mod trivial_block_pipeline;

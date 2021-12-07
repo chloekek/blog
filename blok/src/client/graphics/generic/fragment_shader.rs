@@ -7,17 +7,17 @@ static FRAGMENT_SHADER_BINARY: &'static [u8] =
     include_bytes!(
         concat!(
             env!("OUT_DIR"),
-            "/client/graphics/generic_pipeline/shader.frag.spv",
+            "/client/graphics/generic/shader.frag.spv",
         )
     );
 
 /// Fragment shader used by most pipelines.
-pub struct GenericFragmentShader
+pub struct FragmentShader
 {
     shader: GLuint,
 }
 
-impl Drop for GenericFragmentShader
+impl Drop for FragmentShader
 {
     fn drop(&mut self)
     {
@@ -28,7 +28,7 @@ impl Drop for GenericFragmentShader
     }
 }
 
-impl GenericFragmentShader
+impl FragmentShader
 {
     /// Compile the shader.
     #[doc = crate::doc_safety_opengl!()]

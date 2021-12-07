@@ -1,4 +1,6 @@
-use crate::{client::graphics::GenericFragmentShader, try_gl};
+//! Pipeline for rendering opaque unit cubes at integer coordinates.
+
+use crate::{client::graphics::generic::FragmentShader, try_gl};
 use anyhow::Result;
 use defer_lite::defer;
 use glam::{IVec2, IVec3, Mat4};
@@ -9,7 +11,7 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
     include_bytes!(
         concat!(
             env!("OUT_DIR"),
-            "/client/graphics/trivial_block_pipeline/shader.vert.spv",
+            "/client/graphics/trivial_block/shader.vert.spv",
         )
     );
 
@@ -24,7 +26,7 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
 /// An increment of 1 in either dimension corresponds
 /// to the adjacent texture in that dimension.
 #[repr(C)]
-pub struct TrivialBlockFace
+pub struct Face
 {
     /// X coordinate in the 4 MSbs, Y coordinate in the 4 LSbs.
     pub xy: u8,
@@ -43,14 +45,14 @@ pub struct TrivialBlockFace
 }
 
 /// Set of trivial block faces that appear in a chunk.
-pub struct TrivialBlockFaceSet
+pub struct FaceSet
 {
     buffer: GLuint,
     face_count: usize,
     chunk_position: IVec3,
 }
 
-impl Drop for TrivialBlockFaceSet
+impl Drop for FaceSet
 {
     fn drop(&mut self)
     {
@@ -61,7 +63,7 @@ impl Drop for TrivialBlockFaceSet
     }
 }
 
-impl TrivialBlockFaceSet
+impl FaceSet
 {
     /// Create an empty face set for a given chunk.
     ///
@@ -78,7 +80,7 @@ impl TrivialBlockFaceSet
 
     /// Set the faces of the face set.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn set_data(&mut self, data: &[TrivialBlockFace]) -> Result<()>
+    pub unsafe fn set_data(&mut self, data: &[Face]) -> Result<()>
     {
         try_gl! {
             gl::NamedBufferData(
@@ -99,13 +101,13 @@ impl TrivialBlockFaceSet
 /// The vertex shader will generate the four vertices of each face,
 /// so the buffers passed to this pipeline store only one entry for each face.
 /// Faces that are adjacent to other trivial blocks do not have to be included.
-pub struct TrivialBlockPipeline
+pub struct Pipeline
 {
     program: GLuint,
     vertex_array: GLuint,
 }
 
-impl Drop for TrivialBlockPipeline
+impl Drop for Pipeline
 {
     fn drop(&mut self)
     {
@@ -117,11 +119,11 @@ impl Drop for TrivialBlockPipeline
     }
 }
 
-impl TrivialBlockPipeline
+impl Pipeline
 {
     /// Compile the pipeline.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn new(fragment_shader: &GenericFragmentShader) -> Result<Self>
+    pub unsafe fn new(fragment_shader: &FragmentShader) -> Result<Self>
     {
         let mut this = Self{program: 0, vertex_array: 0};
         this.make_program(fragment_shader)?;
@@ -129,7 +131,7 @@ impl TrivialBlockPipeline
         Ok(this)
     }
 
-    unsafe fn make_program(&mut self, fragment_shader: &GenericFragmentShader)
+    unsafe fn make_program(&mut self, fragment_shader: &FragmentShader)
         -> Result<()>
     {
         let vertex_shader = try_gl! { gl::CreateShader(gl::VERTEX_SHADER) };
@@ -219,7 +221,7 @@ impl TrivialBlockPipeline
         models: I,
     ) -> Result<()>
         where I: IntoIterator<Item=M>
-            , M: Borrow<TrivialBlockFaceSet>
+            , M: Borrow<FaceSet>
     {
         self.pre_render(atlas_size)?;
         for model in models {
@@ -248,7 +250,7 @@ impl TrivialBlockPipeline
     }
 
     /// Implementation detail of `render`.
-    unsafe fn render_one(&self, vp_matrix: &Mat4, model: &TrivialBlockFaceSet)
+    unsafe fn render_one(&self, vp_matrix: &Mat4, model: &FaceSet)
         -> Result<()>
     {
         // Compute the MVP matrix for this chunk.
@@ -266,7 +268,7 @@ impl TrivialBlockPipeline
                 /* bindingindex */ 0,
                 /* buffer       */ model.buffer,
                 /* offset       */ 0,
-                /* stride       */ size_of::<TrivialBlockFace>() as _,
+                /* stride       */ size_of::<Face>() as _,
             );
         }
 

@@ -25,9 +25,9 @@ fn set_link_search()
 fn compile_shaders()
 {
     let shaders = &[
-        ("frag", "client/graphics/generic_pipeline/shader.frag"),
-        ("vert", "client/graphics/generic_pipeline/shader.vert"),
-        ("vert", "client/graphics/trivial_block_pipeline/shader.vert"),
+        ("frag", "client/graphics/generic/shader.frag"),
+        ("vert", "client/graphics/generic/shader.vert"),
+        ("vert", "client/graphics/trivial_block/shader.vert"),
     ];
 
     let optimize = env::var("OPT_LEVEL").unwrap() != "0";

@@ -2,7 +2,7 @@ use glam::{Vec2, Vec3};
 use opengl::gl::types::*;
 
 #[repr(C)]
-pub struct GenericVertex
+pub struct Vertex
 {
     pub position: Vec3,
     pub texcoord: Vec2,
@@ -17,7 +17,7 @@ pub struct GenericVertex
     pub bone_path: [u8; 4],
 }
 
-pub struct GenericModel
+pub struct Model
 {
     buffer: GLuint,
 }
