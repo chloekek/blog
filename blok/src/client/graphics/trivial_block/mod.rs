@@ -1,11 +1,11 @@
 //! Pipeline for rendering opaque unit cubes at integer coordinates.
 
-use crate::{client::graphics::generic::FragmentShader, try_gl};
+use crate::{client::graphics::{GlBuffer, generic::FragmentShader}, try_gl};
 use anyhow::Result;
 use defer_lite::defer;
 use glam::{IVec2, IVec3, Mat4};
 use opengl::gl::{self, types::*};
-use std::{borrow::Borrow, mem::{size_of, size_of_val}, ptr::null};
+use std::{borrow::Borrow, mem::size_of, ptr::null};
 
 static VERTEX_SHADER_BINARY: &'static [u8] =
     include_bytes!(
@@ -25,6 +25,7 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
 /// U and V represent the position of the texture within the texture atlas.
 /// An increment of 1 in either dimension corresponds
 /// to the adjacent texture in that dimension.
+#[derive(Clone, Copy)]
 #[repr(C)]
 pub struct Face
 {
@@ -47,52 +48,12 @@ pub struct Face
 /// Set of trivial block faces that appear in a chunk.
 pub struct FaceSet
 {
-    buffer: GLuint,
-    face_count: usize,
-    chunk_position: IVec3,
-}
+    /// The faces to draw for this chunk.
+    pub faces: GlBuffer<Face>,
 
-impl Drop for FaceSet
-{
-    fn drop(&mut self)
-    {
-        // SAFETY: Provided by caller of `new`.
-        unsafe {
-            gl::DeleteBuffers(1, &self.buffer);
-        }
-    }
-}
-
-impl FaceSet
-{
-    /// Create an empty face set for a given chunk.
-    ///
-    /// The `chunk_position` parameter specifies the chunk.
     /// An increment of 1 in either dimension corresponds
     /// to the adjacent chunk in that dimension.
-    #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn new(chunk_position: IVec3) -> Result<Self>
-    {
-        let mut this = Self{buffer: 0, face_count: 0, chunk_position};
-        try_gl! { gl::CreateBuffers(1, &mut this.buffer); }
-        Ok(this)
-    }
-
-    /// Upload the faces of the face set.
-    #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn upload_faces(&mut self, data: &[Face]) -> Result<()>
-    {
-        try_gl! {
-            gl::NamedBufferData(
-                /* buffer */ self.buffer,
-                /* size   */ size_of_val(data) as _,
-                /* data   */ data.as_ptr() as _,
-                /* usage  */ gl::STATIC_DRAW,
-            );
-        }
-        self.face_count = data.len();
-        Ok(())
-    }
+    pub chunk_position: IVec3,
 }
 
 /// Specialized pipeline for rendering trivial blocks.
@@ -266,7 +227,7 @@ impl Pipeline
         try_gl! {
             gl::BindVertexBuffer(
                 /* bindingindex */ 0,
-                /* buffer       */ model.buffer,
+                /* buffer       */ model.faces.as_raw(),
                 /* offset       */ 0,
                 /* stride       */ size_of::<Face>() as _,
             );
@@ -285,7 +246,7 @@ impl Pipeline
                 // attributes with divisor N advance once every N instances.
                 // We want to advance once for each face, and our divisor is 4,
                 // so we must multiply the face count by 4 here.
-                /* primcount */ (4 * model.face_count) as _,
+                /* primcount */ (4 * model.faces.len()) as _,
             );
         }
 

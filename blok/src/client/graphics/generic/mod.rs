@@ -2,12 +2,12 @@
 
 pub use self::fragment_shader::*;
 
-use crate::try_gl;
+use crate::{client::graphics::GlBuffer, try_gl};
 use anyhow::Result;
 use defer_lite::defer;
 use glam::{Mat4, Vec2, Vec3};
 use opengl::gl::{self, types::*};
-use std::{borrow::Borrow, mem::{size_of, size_of_val}, ptr::null};
+use std::{borrow::Borrow, mem::size_of, ptr::null};
 
 mod fragment_shader;
 
@@ -23,6 +23,7 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
 pub const BONES: usize = 6;
 
 /// Vertex in a model’s vertex buffer.
+#[derive(Clone, Copy)]
 #[repr(C)]
 pub struct Vertex
 {
@@ -42,65 +43,11 @@ pub struct Vertex
 /// Vertex and index buffer for a model.
 pub struct Model
 {
-    vertex_buffer: GLuint,
-    index_buffer: GLuint,
-    index_count: usize,
-}
+    /// The vertices of the model.
+    pub vertices: GlBuffer<Vertex>,
 
-impl Drop for Model
-{
-    fn drop(&mut self)
-    {
-        // SAFETY: Provided by caller of `new`.
-        unsafe {
-            gl::DeleteBuffers(1, &self.vertex_buffer);
-            gl::DeleteBuffers(1, &self.index_buffer);
-        }
-    }
-}
-
-impl Model
-{
-    /// Create an empty model.
-    #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn new() -> Result<Self>
-    {
-        let mut this = Self{vertex_buffer: 0, index_buffer: 0, index_count: 0};
-        try_gl! { gl::CreateBuffers(1, &mut this.vertex_buffer); }
-        try_gl! { gl::CreateBuffers(1, &mut this.index_buffer); }
-        Ok(this)
-    }
-
-    /// Upload the vertices of the model.
-    #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn upload_vertices(&mut self, data: &[Vertex]) -> Result<()>
-    {
-        try_gl! {
-            gl::NamedBufferData(
-                /* buffer */ self.vertex_buffer,
-                /* size   */ size_of_val(data) as _,
-                /* data   */ data.as_ptr() as _,
-                /* usage  */ gl::STATIC_DRAW,
-            );
-        }
-        Ok(())
-    }
-
-    /// Upload the indices of the model.
-    #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn upload_indices(&mut self, data: &[u32]) -> Result<()>
-    {
-        try_gl! {
-            gl::NamedBufferData(
-                /* buffer */ self.index_buffer,
-                /* size   */ size_of_val(data) as _,
-                /* data   */ data.as_ptr() as _,
-                /* usage  */ gl::STATIC_DRAW,
-            );
-        }
-        self.index_count = data.len();
-        Ok(())
-    }
+    /// The vertex indices of the model.
+    pub indices: GlBuffer<u32>,
 }
 
 /// Parameters for a single rendering of a model.
@@ -256,7 +203,7 @@ impl Pipeline
         try_gl! {
             gl::BindVertexBuffer(
                 /* bindingindex */ 0,
-                /* buffer       */ model.vertex_buffer,
+                /* buffer       */ model.vertices.as_raw(),
                 /* offset       */ 0,
                 /* stride       */ size_of::<Vertex>() as _,
             );
@@ -266,7 +213,7 @@ impl Pipeline
         try_gl! {
             gl::BindBuffer(
                 /* target */ gl::ELEMENT_ARRAY_BUFFER,
-                /* buffer */ model.index_buffer,
+                /* buffer */ model.indices.as_raw(),
             );
         }
 
@@ -307,7 +254,7 @@ impl Pipeline
         try_gl! {
             gl::DrawElements(
                 /* mode    */ gl::TRIANGLES,
-                /* count   */ model.index_count as _,
+                /* count   */ model.indices.len() as _,
                 /* type    */ gl::UNSIGNED_INT,
                 /* indices */ null(),
             );

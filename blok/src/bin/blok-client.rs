@@ -1,6 +1,7 @@
 use anyhow::{Result, anyhow};
 use blok::{
     client::graphics::{
+        GlBuffer,
         generic,
         parameters,
         trivial_block,
@@ -57,64 +58,64 @@ unsafe fn unsafe_main() -> Result<()>
 
     // Create rendering state.
 
-    let mut model = generic::Model::new()?;
-
-    model.upload_vertices(&[
-        generic::Vertex{
-            position: vec3(-1.0, -1.0, 0.0),
-            texcoord: vec2(0.0, 0.0),
-            bone: 0,
-        },
-        generic::Vertex{
-            position: vec3(1.0, -1.0, 0.0),
-            texcoord: vec2(1.0, 0.0),
-            bone: 0,
-        },
-        generic::Vertex{
-            position: vec3(0.0, 1.0, 0.0),
-            texcoord: vec2(0.0, 1.0),
-            bone: 0,
-        },
-    ])?;
-
-    model.upload_indices(&[
-        0, 1, 2,
-    ])?;
+    let model = generic::Model{
+        vertices: GlBuffer::new_upload(&[
+            generic::Vertex{
+                position: vec3(-1.0, -1.0, 0.0),
+                texcoord: vec2(0.0, 0.0),
+                bone: 0,
+            },
+            generic::Vertex{
+                position: vec3(1.0, -1.0, 0.0),
+                texcoord: vec2(1.0, 0.0),
+                bone: 0,
+            },
+            generic::Vertex{
+                position: vec3(0.0, 1.0, 0.0),
+                texcoord: vec2(0.0, 1.0),
+                bone: 0,
+            },
+        ], gl::STATIC_DRAW)?,
+        indices: GlBuffer::new_upload(&[
+            0, 1, 2,
+        ], gl::STATIC_DRAW)?,
+    };
 
     let instance = generic::Instance{
         m_matrix: Mat4::IDENTITY,
         bone_matrices: [Mat4::IDENTITY; generic::BONES],
     };
 
-    let generic_models: &mut [(_, &[_])] = &mut [
+    let generic_models: &[(_, &[_])] = &[
         (model, &[instance]),
     ];
 
-    let trivial_block_face_sets = &mut [
-        trivial_block::FaceSet::new(ivec3(0, 0, 0))?,
+    let trivial_block_face_sets = &[
+        trivial_block::FaceSet{
+            faces: GlBuffer::new_upload(&[
+                // TODO: Call TrivialBlockFace::new.
+                trivial_block::Face{
+                    xy: 0,
+                    zf: 3,
+                    u: 0,
+                    v: 0,
+                },
+                trivial_block::Face{
+                    xy: 0,
+                    zf: 4,
+                    u: 15,
+                    v: 7,
+                },
+                trivial_block::Face{
+                    xy: 0,
+                    zf: 0,
+                    u: 7,
+                    v: 3,
+                },
+            ], gl::STATIC_DRAW)?,
+            chunk_position: ivec3(0, 0, 0),
+        },
     ];
-
-    trivial_block_face_sets[0].upload_faces(&[
-        // TODO: Call TrivialBlockFace::new.
-        trivial_block::Face{
-            xy: 0,
-            zf: 3,
-            u: 0,
-            v: 0,
-        },
-        trivial_block::Face{
-            xy: 0,
-            zf: 4,
-            u: 15,
-            v: 7,
-        },
-        trivial_block::Face{
-            xy: 0,
-            zf: 0,
-            u: 7,
-            v: 3,
-        },
-    ])?;
 
     'outer: loop {
 
