@@ -1,7 +1,7 @@
 //! Pipeline for rendering opaque unit cubes at integer coordinates.
 
 use crate::{
-    client::graphics::{GlBuffer, GlShader, generic::FragmentShader},
+    client::graphics::{GlBuffer, GlProgram, GlShader, generic::FragmentShader},
     try_gl,
 };
 use anyhow::Result;
@@ -66,7 +66,7 @@ pub struct FaceSet
 /// Faces that are adjacent to other trivial blocks do not have to be included.
 pub struct Pipeline
 {
-    program: GLuint,
+    program: GlProgram,
     vertex_array: GLuint,
 }
 
@@ -76,7 +76,6 @@ impl Drop for Pipeline
     {
         // SAFETY: Provided by caller of `new`.
         unsafe {
-            gl::DeleteProgram(self.program);
             gl::DeleteVertexArrays(1, &self.vertex_array);
         }
     }
@@ -88,14 +87,14 @@ impl Pipeline
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn new(fragment_shader: &FragmentShader) -> Result<Self>
     {
-        let mut this = Self{program: 0, vertex_array: 0};
-        this.make_program(fragment_shader)?;
+        let program = Self::make_program(fragment_shader)?;
+        let mut this = Self{program, vertex_array: 0};
         this.make_vertex_array()?;
         Ok(this)
     }
 
-    unsafe fn make_program(&mut self, fragment_shader: &FragmentShader)
-        -> Result<()>
+    unsafe fn make_program(fragment_shader: &FragmentShader)
+        -> Result<GlProgram>
     {
         let vertex_shader = GlShader::new(
             /* shader_type      */ gl::VERTEX_SHADER,
@@ -103,16 +102,7 @@ impl Pipeline
             /* constant_indices */ &[],
             /* constant_values  */ &[],
         )?;
-
-        self.program = try_gl! { gl::CreateProgram() };
-
-        try_gl! { gl::AttachShader(self.program, vertex_shader.as_raw()); }
-        try_gl! { gl::AttachShader(self.program, fragment_shader.as_shader().as_raw()); }
-        try_gl! { gl::LinkProgram(self.program); }
-        try_gl! { gl::DetachShader(self.program, fragment_shader.as_shader().as_raw()); }
-        try_gl! { gl::DetachShader(self.program, vertex_shader.as_raw()); }
-
-        Ok(())
+        GlProgram::new(&[&vertex_shader, fragment_shader.as_shader()])
     }
 
     unsafe fn make_vertex_array(&mut self) -> Result<()>
@@ -182,7 +172,7 @@ impl Pipeline
     unsafe fn pre_render(&self, atlas_size: &IVec2) -> Result<()>
     {
         // Select program and vertex array.
-        try_gl! { gl::UseProgram(self.program); }
+        try_gl! { gl::UseProgram(self.program.as_raw()); }
         try_gl! { gl::BindVertexArray(self.vertex_array); }
 
         // Configure face culling.
