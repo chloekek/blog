@@ -7,7 +7,7 @@ use anyhow::Result;
 use defer_lite::defer;
 use glam::{Mat4, Vec2, Vec3};
 use opengl::gl::{self, types::*};
-use std::borrow::Borrow;
+use std::{borrow::Borrow, mem::size_of, ptr::null};
 
 mod fragment_shader;
 
@@ -20,9 +20,9 @@ static VERTEX_SHADER_BINARY: &'static [u8] =
     );
 
 /// Maximum number of bones supported.
-const BONES: GLuint = 6;
+pub const BONES: GLuint = 6;
 
-/// Vertex in a model.
+/// Vertex in a model’s vertex buffer.
 #[repr(C)]
 pub struct Vertex
 {
@@ -41,6 +41,7 @@ pub struct Model
 {
     vertex_buffer: GLuint,
     index_buffer: GLuint,
+    index_count: usize,
 }
 
 /// Parameters for a single rendering of a model.
@@ -71,6 +72,7 @@ impl Drop for Pipeline
 
 impl Pipeline
 {
+    /// Compile the pipeline.
     #[doc = crate::doc_safety_opengl!()]
     pub unsafe fn new(fragment_shader: &FragmentShader) -> Result<Self>
     {
@@ -143,13 +145,112 @@ impl Pipeline
         Ok(())
     }
 
+    /// Render a collection of instances of models.
+    ///
+    /// The method signature looks a bit complicated.
+    /// You pass a sequence of models to render instances of.
+    /// For each model you also pass a sequence of instances.
+    /// The pipeline will set up rendering of each model only once,
+    /// then render all instances of that model in sequence.
     #[doc = crate::doc_safety_opengl!()]
-    pub unsafe fn render<I, J, M, N>(models: I) -> Result<()>
+    pub unsafe fn render<I, J, M, N>(&self, vp_matrix: &Mat4, models: I)
+        -> Result<()>
         where I: IntoIterator<Item=(M, J)>
             , J: IntoIterator<Item=N>
             , M: Borrow<Model>
             , N: Borrow<Instance>
     {
-        todo!()
+        self.pre_render()?;
+        for (model, instances) in models {
+            let model = model.borrow();
+            self.pre_render_model(model)?;
+            for instance in instances {
+                let instance = instance.borrow();
+                self.render_instance(vp_matrix, model, instance)?;
+            }
+        }
+        Ok(())
+    }
+
+    /// Implementation detail of `render`.
+    unsafe fn pre_render(&self) -> Result<()>
+    {
+        // Select program and vertex array.
+        try_gl! { gl::UseProgram(self.program); }
+        try_gl! { gl::BindVertexArray(self.vertex_array); }
+
+        // Configure face culling.
+        try_gl! { gl::Enable(gl::CULL_FACE); }
+        try_gl! { gl::CullFace(gl::BACK); }
+        try_gl! { gl::FrontFace(gl::CCW); }
+
+        Ok(())
+    }
+
+    /// Implementation detail of `render`.
+    unsafe fn pre_render_model(&self, model: &Model) -> Result<()>
+    {
+        // Bind vertex buffer.
+        try_gl! {
+            gl::BindVertexBuffer(
+                /* bindingindex */ 0,
+                /* buffer       */ model.vertex_buffer,
+                /* offset       */ 0,
+                /* stride       */ size_of::<Vertex>() as _,
+            );
+        }
+
+        // Bind index buffer.
+        try_gl! {
+            gl::BindBuffer(
+                /* target */ gl::ELEMENT_ARRAY_BUFFER,
+                /* buffer */ model.index_buffer,
+            );
+        }
+
+        Ok(())
+    }
+
+    /// Implementation detail of `render`.
+    unsafe fn render_instance(
+        &self,
+        vp_matrix: &Mat4,
+        model: &Model,
+        instance: &Instance,
+    ) -> Result<()>
+    {
+        // Compute the MVP matrix for this instance.
+        let mvp_matrix = *vp_matrix * instance.m_matrix;
+        let mvp_matrix = mvp_matrix.as_ref().as_ptr();
+
+        // Set uniforms specific to this instance.
+        try_gl! {
+            gl::UniformMatrix4fv(
+                /* location  */ 0,
+                /* count     */ 1,
+                /* transpose */ gl::FALSE,
+                /* value     */ mvp_matrix,
+            );
+        }
+        try_gl! {
+            gl::UniformMatrix4fv(
+                /* location  */ 1,
+                /* count     */ BONES as _,
+                /* transpose */ gl::FALSE,
+                /* value     */ instance.bone_matrices.as_ptr() as _,
+            );
+        }
+
+        // Draw model for this instance.
+        try_gl! {
+            gl::DrawElements(
+                /* mode    */ gl::TRIANGLES,
+                /* count   */ model.index_count as _,
+                /* type    */ gl::UNSIGNED_INT,
+                /* indices */ null(),
+            );
+        }
+
+        Ok(())
     }
 }
