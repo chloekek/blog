@@ -1,7 +1,13 @@
 //! Pipeline for rendering opaque unit cubes at integer coordinates.
 
 use crate::{
-    client::graphics::{GlBuffer, GlProgram, GlShader, generic::FragmentShader},
+    client::graphics::{
+        GlBuffer,
+        GlProgram,
+        GlShader,
+        GlUniform,
+        generic::FragmentShader,
+    },
     try_gl,
 };
 use anyhow::Result;
@@ -181,7 +187,7 @@ impl Pipeline
         try_gl! { gl::FrontFace(gl::CCW); }
 
         // Set uniforms common to all chunks.
-        try_gl! { gl::Uniform2f(1, atlas_size.x as f32, atlas_size.y as f32); }
+        atlas_size.as_vec2().gl_uniform(1)?;
 
         Ok(())
     }
@@ -194,10 +200,9 @@ impl Pipeline
         let m_vector = (16 * model.chunk_position).as_vec3();
         let m_matrix = Mat4::from_translation(m_vector);
         let mvp_matrix = *vp_matrix * m_matrix;
-        let mvp_matrix = mvp_matrix.as_ref().as_ptr();
 
         // Set uniforms specific to this chunk.
-        try_gl! { gl::UniformMatrix4fv(2, 1, gl::FALSE, mvp_matrix); }
+        mvp_matrix.gl_uniform(2)?;
 
         // Select the buffer to read faces from.
         try_gl! {

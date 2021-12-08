@@ -2,7 +2,10 @@
 
 pub use self::fragment_shader::*;
 
-use crate::{client::graphics::{GlBuffer, GlProgram, GlShader}, try_gl};
+use crate::{
+    client::graphics::{GlBuffer, GlProgram, GlShader, GlUniform},
+    try_gl,
+};
 use anyhow::Result;
 use glam::{Mat4, Vec2, Vec3};
 use opengl::gl::{self, types::*};
@@ -203,25 +206,10 @@ impl Pipeline
     {
         // Compute the MVP matrix for this instance.
         let mvp_matrix = *vp_matrix * instance.m_matrix;
-        let mvp_matrix = mvp_matrix.as_ref().as_ptr();
 
         // Set uniforms specific to this instance.
-        try_gl! {
-            gl::UniformMatrix4fv(
-                /* location  */ 0,
-                /* count     */ 1,
-                /* transpose */ gl::FALSE,
-                /* value     */ mvp_matrix,
-            );
-        }
-        try_gl! {
-            gl::UniformMatrix4fv(
-                /* location  */ 1,
-                /* count     */ BONES as _,
-                /* transpose */ gl::FALSE,
-                /* value     */ instance.bone_matrices.as_ptr() as _,
-            );
-        }
+        mvp_matrix.gl_uniform(0)?;
+        instance.bone_matrices.gl_uniform(1)?;
 
         // Draw model for this instance.
         try_gl! {
